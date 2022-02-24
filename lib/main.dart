@@ -68,18 +68,18 @@ class AnimatedPathPainter extends CustomPainter {
       ..moveTo(size.width / 2, size.height)
       // ..lineTo(size.height, size.width / 2)
       // ..lineTo(size.height / 2, size.width)
-      ..quadraticBezierTo(
-          size.width, size.height * 7 / 8, size.width / 2, size.height * 3 / 4)
-      ..quadraticBezierTo(
-          0, size.height * 5 / 8, size.width / 2, size.height * 2 / 4)
-      ..quadraticBezierTo(
-          size.width, size.height * 3 / 8, size.width / 2, size.height * 1 / 4)
-      ..quadraticBezierTo(0, size.height * 1 / 8, size.width / 2, 0);
+      ..quadraticBezierTo(size.width * 1 * 3 / 4, size.height,
+          size.width * 3 / 4, size.height * 7 / 8)
+      ..quadraticBezierTo(size.width * 3 / 4, size.height * 3 / 4,
+          size.width / 2, size.height * 6 / 8)
+      ..quadraticBezierTo(size.width / 4, size.height * 6 / 8,
+          size.width * 1 / 4, size.height * 5 / 8);
+    // ..quadraticBezierTo(0, size.height * 1 / 8, size.width / 2, 0);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final animationPercent = this._animation.value;
+    final animationPercent = _animation.value;
 
     print("Painting + $animationPercent - $size");
     final path = createAnimatedPath(_createAnyPath(size), animationPercent);
