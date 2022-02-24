@@ -4,6 +4,24 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+/// Hard coded variables
+
+// Each section is equal to half of vertical distance between 2 milestones
+// Number includes 1 additional section height reserved for end of path on top of UI and
+// another 1 section in the bottom for first milestone
+// So number of sections = number of max milestones * 2 + 2
+const int kNumberOfSections = 8; //
+
+const int kNumberOfMilestones =
+    3; // Actual number of milestones completed; minimum 1
+
+// Use to define steepness of curve, lesser value >> steeper curve
+const int kControlPoint = 50;
+
+// Keep track if the current milestone is on th right of center or left of center
+
+/// End Hard Code vars
+
 Path createAnimatedPath(
   Path originalPath,
   double animationPercent,
@@ -63,18 +81,59 @@ class AnimatedPathPainter extends CustomPainter {
 
   AnimatedPathPainter(this._animation) : super(repaint: _animation);
 
+  Path _pathToNextMilestone(Size size, Path pathIn, int currentMilestone) {
+    late double heightTop;
+    late double heightMid;
+
+    if ((currentMilestone / 2) == (currentMilestone ~/ 2)) {
+      heightTop = size.height *
+          ((kNumberOfSections - ((currentMilestone * 2) - 1))) /
+          kNumberOfSections;
+
+      heightMid = size.height *
+          ((kNumberOfSections - ((currentMilestone - 1) * 2))) /
+          kNumberOfSections;
+
+      pathIn
+        ..quadraticBezierTo(
+            (size.width) - kControlPoint, heightMid, size.width / 2, heightMid)
+        ..quadraticBezierTo(
+            kControlPoint + 0.0, heightMid, kControlPoint + 0.0, heightTop);
+    } else {
+      heightTop = size.height *
+          ((kNumberOfSections - ((currentMilestone * 2) - 1))) /
+          kNumberOfSections;
+
+      heightMid = size.height *
+          ((kNumberOfSections - ((currentMilestone - 1) * 2))) /
+          kNumberOfSections;
+
+      pathIn
+        ..quadraticBezierTo(
+            kControlPoint + 0.0, heightMid, size.width / 2, heightMid)
+        ..quadraticBezierTo(size.width - kControlPoint + 0.0, heightMid,
+            size.width - kControlPoint + 0.0, heightTop);
+    }
+    return pathIn;
+  }
+
   Path _createAnyPath(Size size) {
-    return Path()
+    Path path = Path()
       ..moveTo(size.width / 2, size.height)
       // ..lineTo(size.height, size.width / 2)
       // ..lineTo(size.height / 2, size.width)
-      ..quadraticBezierTo(size.width * 1 * 3 / 4, size.height,
-          size.width * 3 / 4, size.height * 7 / 8)
-      ..quadraticBezierTo(size.width * 3 / 4, size.height * 3 / 4,
-          size.width / 2, size.height * 6 / 8)
-      ..quadraticBezierTo(size.width / 4, size.height * 6 / 8,
-          size.width * 1 / 4, size.height * 5 / 8);
-    // ..quadraticBezierTo(0, size.height * 1 / 8, size.width / 2, 0);
+      ..quadraticBezierTo(
+          size.width - kControlPoint,
+          size.height - kControlPoint, // * 1 * 3 / 4
+          size.width - kControlPoint,
+          size.height * ((kNumberOfSections - 1) / kNumberOfSections));
+
+    if (kNumberOfMilestones > 1) {
+      for (int i = 2; i <= kNumberOfMilestones; i++) {
+        path = _pathToNextMilestone(size, path, i);
+      }
+    }
+    return path;
   }
 
   @override
