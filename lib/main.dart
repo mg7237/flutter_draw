@@ -3,6 +3,8 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 
 /// Hard coded variables
 
@@ -10,15 +12,20 @@ import 'package:flutter/material.dart';
 // Number includes 1 additional section height reserved for end of path on top of UI and
 // another 1 section in the bottom for first milestone
 // So number of sections = number of max milestones * 2 + 2
-const int kNumberOfSections = 8; //
+const int kNumberOfSections = 10; //
 
 const int kNumberOfMilestones =
-    3; // Actual number of milestones completed; minimum 1
+    5; // Actual number of milestones completed; minimum 1
 
 // Use to define steepness of curve, lesser value >> steeper curve
-const int kControlPoint = 50;
+const kControlPoint = 70.0;
 
 // Keep track if the current milestone is on th right of center or left of center
+
+// Milestone image size (IconSize) is within a square container
+const kIconSize = 50.0;
+
+const kCardDistance = 30.0;
 
 /// End Hard Code vars
 
@@ -70,11 +77,17 @@ Path extractPathUntilLength(
   return path;
 }
 
-void main() => runApp(
-      MaterialApp(
-        home: AnimatedPathDemo(),
-      ),
-    );
+void main() {
+  // We need to call it manually,
+  // because we going to call setPreferredOrientations()
+  // before the runApp() call
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Than we setup preferred orientations,
+  // and only after it finished we run our app
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((value) => runApp(const MaterialApp(home: AnimatedPathDemo())));
+}
 
 class AnimatedPathPainter extends CustomPainter {
   final Animation<double> _animation;
@@ -120,11 +133,9 @@ class AnimatedPathPainter extends CustomPainter {
   Path _createAnyPath(Size size) {
     Path path = Path()
       ..moveTo(size.width / 2, size.height)
-      // ..lineTo(size.height, size.width / 2)
-      // ..lineTo(size.height / 2, size.width)
       ..quadraticBezierTo(
           size.width - kControlPoint,
-          size.height - kControlPoint, // * 1 * 3 / 4
+          size.height, // * 1 * 3 / 4
           size.width - kControlPoint,
           size.height * ((kNumberOfSections - 1) / kNumberOfSections));
 
@@ -156,6 +167,8 @@ class AnimatedPathPainter extends CustomPainter {
 }
 
 class AnimatedPathDemo extends StatefulWidget {
+  const AnimatedPathDemo({Key? key}) : super(key: key);
+
   @override
   _AnimatedPathDemoState createState() => _AnimatedPathDemoState();
 }
@@ -168,28 +181,118 @@ class _AnimatedPathDemoState extends State<AnimatedPathDemo>
     _controller.stop();
     _controller.reset();
     _controller.repeat(
-      period: Duration(seconds: 5),
+      period: const Duration(seconds: 5),
     );
+  }
+
+  List<Widget> _drawTriangleAndCards(Size size) {
+    List<Widget> widgets = [];
+    for (int i = 1; i <= (kNumberOfSections / 2); i++) {
+      if ((i / 2) == (i ~/ 2)) {
+        widgets.add(Positioned(
+            left: kControlPoint - (kIconSize / 2) + 4,
+            top: ((kNumberOfSections - ((i * 2) - 1)) /
+                    kNumberOfSections *
+                    size.height) -
+                (kIconSize / 2),
+            child: Row(
+              children: [
+                SizedBox(
+                    width: kIconSize + 0.0,
+                    height: kIconSize + 0.0,
+                    child: SvgPicture.asset('assets/roadmap_topic.svg')),
+                Column(children: [
+                  Text(
+                    'MileStone Number: $i',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                      height: 70,
+                      width: 100,
+                      decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          border: Border.all(),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5))),
+                      child: const Center(
+                        child:
+                            Text('Sample Card', style: TextStyle(fontSize: 12)),
+                      ))
+                ]),
+              ],
+            )));
+      } else {
+        widgets.add(Positioned(
+            right: kControlPoint - (kIconSize / 2), //  (kIconSize / 2)
+            top: (size.height *
+                    (kNumberOfSections - ((i * 2) - 1)) /
+                    kNumberOfSections) -
+                20,
+            child: Row(
+              children: [
+                Column(children: [
+                  Text(
+                    'MileStone Number: $i',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                      height: 70,
+                      width: 100,
+                      decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          border: Border.all(),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5))),
+                      child: const Center(
+                        child:
+                            Text('Sample Card', style: TextStyle(fontSize: 12)),
+                      ))
+                ]),
+                SizedBox(
+                    width: kIconSize + 0.0,
+                    height: kIconSize + 0.0,
+                    child: SvgPicture.asset('assets/roadmap_topic.svg')),
+              ],
+            )));
+      }
+    }
+
+    return widgets;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Animated Paint')),
-      body: Stack(children: [
-        Container(
-          height: MediaQuery.of(context).size.height,
-          width: MediaQuery.of(context).size.width,
-          decoration:
-              const BoxDecoration(color: Color.fromARGB(100, 189, 189, 189)),
-          child: CustomPaint(painter: AnimatedPathPainter(_controller)),
-        ),
-      ]),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _startAnimation,
-        child: const Icon(Icons.play_arrow),
-      ),
+    Size size = Size(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
     );
+    return Scaffold(
+        //appBar: AppBar(title: const Text('Animated Paint')),
+        body: Stack(children: [
+          // Container(
+          //   height: MediaQuery.of(context).size.height,
+          //   width: MediaQuery.of(context).size.width,
+          //   decoration:
+          //       const BoxDecoration(color: Color.fromARGB(100, 189, 189, 189)),
+          //   child: CustomPaint(painter: AnimatedPathPainter(_controller)),
+          // ),
+          Container(
+            height: size.height,
+            width: size.width,
+            decoration:
+                const BoxDecoration(color: Color.fromARGB(255, 189, 189, 189)),
+            child: CustomPaint(
+                painter: AnimatedPathPainter(_controller), size: size),
+          ),
+          Stack(children: _drawTriangleAndCards(size)),
+        ]),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _startAnimation,
+          child: const Icon(Icons.play_arrow),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat);
   }
 
   @override
