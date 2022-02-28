@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
+import 'package:path_drawing/path_drawing.dart';
 
 /// Hard coded variables
 
@@ -14,8 +15,9 @@ import 'package:flutter/services.dart';
 // So number of sections = number of max milestones * 2 + 2
 const int kNumberOfSections = 10; //
 
-const int kNumberOfMilestones =
-    5; // Actual number of milestones completed; minimum 1
+const int kMaxMilestones = 5; // Maximum milestones
+const int kMilestonesCompleted =
+    3; // Actual number of milestones completed; minimum 1
 
 // Use to define steepness of curve, lesser value >> steeper curve
 const kControlPoint = 70.0;
@@ -86,7 +88,7 @@ void main() {
   // Than we setup preferred orientations,
   // and only after it finished we run our app
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
-      .then((value) => runApp(const MaterialApp(home: AnimatedPathDemo())));
+      .then((value) => runApp(const MaterialApp(home: AnimatedPath())));
 }
 
 class AnimatedPathPainter extends CustomPainter {
@@ -139,8 +141,11 @@ class AnimatedPathPainter extends CustomPainter {
           size.width - kControlPoint,
           size.height * ((kNumberOfSections - 1) / kNumberOfSections));
 
-    if (kNumberOfMilestones > 1) {
-      for (int i = 2; i <= kNumberOfMilestones; i++) {
+    // dashArray: CircularIntervalList<double>([dashSize, gapSize]),
+    //   dashOffset: DashOffset.percentage(0.005));
+
+    if (kMilestonesCompleted > 1) {
+      for (int i = 2; i <= kMilestonesCompleted; i++) {
         path = _pathToNextMilestone(size, path, i);
       }
     }
@@ -155,34 +160,36 @@ class AnimatedPathPainter extends CustomPainter {
     final path = createAnimatedPath(_createAnyPath(size), animationPercent);
 
     final Paint paint = Paint();
-    paint.color = Colors.redAccent;
+    paint.color = Colors.greenAccent;
     paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = 1.0;
+    paint.strokeWidth = 10.0;
 
     canvas.drawPath(path, paint);
+    //  canvas.drawRect(path, paint);
   }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
 
-class AnimatedPathDemo extends StatefulWidget {
-  const AnimatedPathDemo({Key? key}) : super(key: key);
+class AnimatedPath extends StatefulWidget {
+  const AnimatedPath({Key? key}) : super(key: key);
 
   @override
-  _AnimatedPathDemoState createState() => _AnimatedPathDemoState();
+  _AnimatedPathState createState() => _AnimatedPathState();
 }
 
-class _AnimatedPathDemoState extends State<AnimatedPathDemo>
+class _AnimatedPathState extends State<AnimatedPath>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   void _startAnimation() {
     _controller.stop();
     _controller.reset();
-    _controller.repeat(
-      period: const Duration(seconds: 5),
-    );
+    _controller.duration = const Duration(seconds: 5);
+    _controller.forward(
+        //period: const Duration(seconds: 5),
+        );
   }
 
   List<Widget> _drawTriangleAndCards(Size size) {
@@ -228,7 +235,7 @@ class _AnimatedPathDemoState extends State<AnimatedPathDemo>
             top: (size.height *
                     (kNumberOfSections - ((i * 2) - 1)) /
                     kNumberOfSections) -
-                20,
+                30,
             child: Row(
               children: [
                 Column(children: [
@@ -271,28 +278,23 @@ class _AnimatedPathDemoState extends State<AnimatedPathDemo>
     return Scaffold(
         //appBar: AppBar(title: const Text('Animated Paint')),
         body: Stack(children: [
-          // Container(
-          //   height: MediaQuery.of(context).size.height,
-          //   width: MediaQuery.of(context).size.width,
-          //   decoration:
-          //       const BoxDecoration(color: Color.fromARGB(100, 189, 189, 189)),
-          //   child: CustomPaint(painter: AnimatedPathPainter(_controller)),
-          // ),
-          Container(
-            height: size.height,
-            width: size.width,
-            decoration:
-                const BoxDecoration(color: Color.fromARGB(255, 189, 189, 189)),
-            child: CustomPaint(
-                painter: AnimatedPathPainter(_controller), size: size),
-          ),
-          Stack(children: _drawTriangleAndCards(size)),
-        ]),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _startAnimation,
-          child: const Icon(Icons.play_arrow),
+      Container(
+        height: size.height,
+        width: size.width,
+        decoration:
+            const BoxDecoration(color: Color.fromARGB(255, 189, 189, 189)),
+        child:
+            CustomPaint(painter: AnimatedPathPainter(_controller), size: size),
+      ),
+      Center(
+        child: Container(
+          width: size.width,
+          height: size.height,
+          child: CustomPaint(painter: DashPathPainter(size)),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat);
+      ),
+      Stack(children: _drawTriangleAndCards(size)),
+    ]));
   }
 
   @override
@@ -301,11 +303,91 @@ class _AnimatedPathDemoState extends State<AnimatedPathDemo>
     _controller = AnimationController(
       vsync: this,
     );
+    _startAnimation();
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+}
+
+class DashPathPainter extends CustomPainter {
+  final Size size;
+  DashPathPainter(this.size);
+
+  final Paint blackStroke = Paint()
+    ..color = Colors.black
+    ..strokeWidth = 2.0
+    ..style = PaintingStyle.stroke;
+
+  Path _pathToNextMilestone(Size size, Path pathIn, int currentMilestone) {
+    late double heightTop;
+    late double heightMid;
+
+    if ((currentMilestone / 2) == (currentMilestone ~/ 2)) {
+      heightTop = size.height *
+          ((kNumberOfSections - ((currentMilestone * 2) - 1))) /
+          kNumberOfSections;
+
+      heightMid = size.height *
+          ((kNumberOfSections - ((currentMilestone - 1) * 2))) /
+          kNumberOfSections;
+
+      pathIn
+        ..quadraticBezierTo(
+            (size.width) - kControlPoint, heightMid, size.width / 2, heightMid)
+        ..quadraticBezierTo(
+            kControlPoint + 0.0, heightMid, kControlPoint + 0.0, heightTop);
+    } else {
+      heightTop = size.height *
+          ((kNumberOfSections - ((currentMilestone * 2) - 1))) /
+          kNumberOfSections;
+
+      heightMid = size.height *
+          ((kNumberOfSections - ((currentMilestone - 1) * 2))) /
+          kNumberOfSections;
+
+      pathIn
+        ..quadraticBezierTo(
+            kControlPoint + 0.0, heightMid, size.width / 2, heightMid)
+        ..quadraticBezierTo(size.width - kControlPoint + 0.0, heightMid,
+            size.width - kControlPoint + 0.0, heightTop);
+    }
+    return pathIn;
+  }
+
+  Path _createAnyPath(Size size) {
+    Path path = Path()
+      ..moveTo(size.width / 2, size.height)
+      ..quadraticBezierTo(
+          size.width - kControlPoint,
+          size.height, // * 1 * 3 / 4
+          size.width - kControlPoint,
+          size.height * ((kNumberOfSections - 1) / kNumberOfSections));
+
+    if (kMaxMilestones > 1) {
+      for (int i = 2; i <= kMaxMilestones; i++) {
+        path = _pathToNextMilestone(size, path, i);
+      }
+    }
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(DashPathPainter oldDelegate) => true;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Path p = _createAnyPath(size);
+    canvas.drawPath(
+        dashPath(
+          p,
+          dashArray: CircularIntervalList<double>(
+            <double>[10.0, 5],
+          ),
+        ),
+        blackStroke);
   }
 }
