@@ -1,7 +1,8 @@
 // ignore_for_file: avoid_print
 
 import 'dart:ui';
-
+import 'dart:convert';
+import 'models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +29,10 @@ const kControlPoint = 70.0;
 const kIconSize = 50.0;
 
 const kCardDistance = 30.0;
+
+const jsonData =
+    '{"currentMilestone":3,"milestones":[{"type":"starting-point","title":"Precap"},{"type":"topic","title":"Basic of Electric Current"},{"type":"preconcept","title":"Electric Charge","clarity":"20%"},{"type":"topic","title":"Details of Ohm'
+    's Law"},{"type":"topic","title":"Velocity, Mebility and Current"},{"type":"topic","title":"Relation Between Temperature and Resitivity"},{"type":"classwork","title":"Classwork WS","progress":{"total":20,"completed":10}},{"type":"homework","title":"Homework","progress":{"total":26,"completed":18}}]}';
 
 /// End Hard Code vars
 
@@ -160,7 +165,7 @@ class AnimatedPathPainter extends CustomPainter {
     final path = createAnimatedPath(_createAnyPath(size), animationPercent);
 
     final Paint paint = Paint();
-    paint.color = Colors.greenAccent;
+    paint.color = Colors.green[500] ?? Colors.green;
     paint.style = PaintingStyle.stroke;
     paint.strokeWidth = 10.0;
 
@@ -182,6 +187,11 @@ class AnimatedPath extends StatefulWidget {
 class _AnimatedPathState extends State<AnimatedPath>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late int numberOfMilestones;
+  List<Milestone> milestones = [];
+  List<double> milestoneHeights = []; // Height of individual milestones
+  double totalHeight =
+      0; // Canvas height = Sum of all milestone heights in above array
 
   void _startAnimation() {
     _controller.stop();
@@ -282,7 +292,7 @@ class _AnimatedPathState extends State<AnimatedPath>
         height: size.height,
         width: size.width,
         decoration:
-            const BoxDecoration(color: Color.fromARGB(255, 189, 189, 189)),
+            const BoxDecoration(color: Color.fromRGBO(45, 69, 156, 1.0)),
         child:
             CustomPaint(painter: AnimatedPathPainter(_controller), size: size),
       ),
@@ -303,6 +313,7 @@ class _AnimatedPathState extends State<AnimatedPath>
     _controller = AnimationController(
       vsync: this,
     );
+    _readData();
     _startAnimation();
   }
 
@@ -311,6 +322,41 @@ class _AnimatedPathState extends State<AnimatedPath>
     _controller.dispose();
     super.dispose();
   }
+
+  double _getMilestoneHeight({required type, required title}) {
+    return 60.0;
+  }
+
+  void _readData() {
+    try {
+      Map<String, dynamic> mapData = jsonDecode(jsonData);
+      numberOfMilestones = mapData['currentMilestone'];
+      List<dynamic> milestonesData = mapData['milestones'];
+      for (int i = 0; i < milestonesData.length; i++) {
+        double height = _getMilestoneHeight(
+            type: milestonesData[i]['type'], title: milestonesData[i]['title']);
+        if (milestonesData[i]['progress'] != null) {
+          milestones.add(Milestone(
+              type: milestonesData[i]['type'],
+              title: milestonesData[i]['title'],
+              clarity: milestonesData[i]['clarity'],
+              height: height,
+              progress: Progress(
+                  completed: milestonesData[i]['progress']['completed'],
+                  total: milestonesData[i]['progress']['total'])));
+        } else {
+          milestones.add(Milestone(
+              type: milestonesData[i]['type'],
+              title: milestonesData[i]['title'],
+              height: height,
+              clarity: milestonesData[i]['clarity']));
+        }
+      }
+    } catch (e) {
+      print('Exception while parsing json data: ' + e.toString());
+    }
+    print(milestones);
+  }
 }
 
 class DashPathPainter extends CustomPainter {
@@ -318,7 +364,7 @@ class DashPathPainter extends CustomPainter {
   DashPathPainter(this.size);
 
   final Paint blackStroke = Paint()
-    ..color = Colors.black
+    ..color = const Color.fromRGBO(82, 101, 171, 1)
     ..strokeWidth = 2.0
     ..style = PaintingStyle.stroke;
 
