@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class RoadMapData {
   int currentMilestone;
   List<Milestone> milestones = [];
@@ -23,4 +25,10 @@ class Progress {
   int completed;
 
   Progress({required this.total, required this.completed});
+}
+
+class MilestoneDetail {
+  double height;
+  Widget detailWidget;
+  MilestoneDetail({required this.height, required this.detailWidget});
 }
