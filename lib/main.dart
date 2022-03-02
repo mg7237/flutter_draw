@@ -107,7 +107,6 @@ class _AnimatedPathState extends State<AnimatedPath>
         break;
       case 'preconcept':
         height = 7 * kLineHeight + 20;
-
         milestoneDetail = MilestoneDetail(
             height: height,
             detailWidget: Column(
@@ -214,7 +213,7 @@ class _AnimatedPathState extends State<AnimatedPath>
             left: (i != 0)
                 ? kControlPoint + kCardDistance
                 : (kControlPoint * 2) + kCardDistance,
-            bottom: milestoneHeight - milestoneDetail.height / 2,
+            bottom: milestoneHeight - ((milestoneDetail.height) / 2) + 10,
             child: milestoneDetail.detailWidget));
       } else {
         widgets.add(Positioned(
@@ -231,7 +230,7 @@ class _AnimatedPathState extends State<AnimatedPath>
         ));
         widgets.add(Positioned(
             left: kControlPoint,
-            bottom: milestoneHeight - milestoneDetail.height / 2,
+            bottom: milestoneHeight - ((milestoneDetail.height) / 2) + 10,
             child: milestoneDetail.detailWidget));
       }
     }
@@ -288,7 +287,7 @@ class _AnimatedPathState extends State<AnimatedPath>
     _startAnimation();
     card = Container(
         height: 4 * kLineHeight,
-        width: 130,
+        width: 140,
         decoration: BoxDecoration(
             color: const Color(0xffffffff),
             border: Border.all(),
@@ -353,19 +352,13 @@ class _AnimatedPathState extends State<AnimatedPath>
     switch (type) {
       case 'starting-point':
         height = 100;
-        //
         break;
       case 'topic':
-        //
-        break;
       case 'preconcept':
-        //
-        break;
       case 'classwork':
-        //
-        break;
       case 'homework':
-        //
+      default:
+        height = 200;
         break;
     }
     return height;
