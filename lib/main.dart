@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_drawing/path_drawing.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Hard coded variables
 
 // Use to define steepness of curve, lesser value >> steeper curve
-const kControlPoint = 75.0;
+const kControlPoint = 50.0;
 
 List<Milestone> milestones = []; // All milestones array check Milestone Model
 
@@ -18,12 +19,12 @@ const kIconSize = 50.0;
 
 int numberOfMilestones = 0; // Current Milestone number
 
-/// Milestone Detail Widget - 1 line height; used to calculate the widget
-/// height depending on milestone type
-late double kLineHeight = 20.0;
+double kLineHeight = 20.0; // Used for card dimensions
 
 const kCardDistance =
     50.0; // Distance of card from the malestone point on the curve
+
+double heightGap = 30.0; // Left, Right milestone height difference
 
 late Widget card; // Common card for all milestone which need card
 
@@ -40,6 +41,7 @@ TextStyle kTextStyleSmall = const TextStyle(
     fontSize: 12,
     color: Colors.white,
     fontWeight: FontWeight.bold);
+
 const jsonData =
     '{"currentMilestone":3,"milestones":[{"type":"starting-point","title":"Precap"},{"type":"topic","title":"Basic of Electric X Current Basic of Electric Current X Basic of Electric Current"},{"type":"preconcept","title":"Electric Charge","clarity":"20%"},{"type":"topic","title":"Details of Ohm'
     's Law"},{"type":"topic","title":"Velocity, Mebility and Current"},{"type":"topic","title":"Relation Between Temperature and Resitivity"},{"type":"classwork","title":"Classwork WS","progress":{"total":20,"completed":10}},{"type":"homework","title":"Homework","progress":{"total":26,"completed":18}}]}';
@@ -56,10 +58,16 @@ class AnimatedPath extends StatefulWidget {
 class _AnimatedPathState extends State<AnimatedPath>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-
+  bool init = true;
+  Size size = const Size(0, 0);
   double totalHeight =
       0; // Canvas height = Sum of all milestone heights in above array
-  double topBuffer = 50.0;
+
+  double totalWidth = 0;
+  final GlobalKey _masterContainerKey = GlobalKey();
+  List<GlobalKey> rowKeys = [];
+  List<Widget> columnWidgets = [];
+  Column masterColumn = Column(children: const []);
 
   void _startAnimation() {
     _controller.stop();
@@ -68,208 +76,192 @@ class _AnimatedPathState extends State<AnimatedPath>
     _controller.forward();
   }
 
-  MilestoneDetail milestoneInformation(
-      int milestoneNumberLocal, double milestoneHeight) {
-    late MilestoneDetail milestoneDetail;
-    late double height;
+  Widget milestoneInformation(int milestoneNumberLocal) {
+    late Widget milestoneDetail;
+
     String title = milestones[milestoneNumberLocal].title;
     if ((milestones[milestoneNumberLocal].title) != '' &&
         milestones[milestoneNumberLocal].title.length > 55) {
       title = title.substring(0, 53) + ' ...';
     }
+
     switch (milestones[milestoneNumberLocal].type) {
       case 'starting-point':
-        height = 2 * kLineHeight;
-        milestoneDetail = MilestoneDetail(
-            height: height,
-            detailWidget: Container(
-                alignment: Alignment.centerRight,
-                height: height,
-                width: 150,
-                child: Text(title, style: kTextStyle)));
+        milestoneDetail =
+            SizedBox(width: 150, child: Text(title, style: kTextStyle));
         break;
       case 'topic':
-        height = 6 * kLineHeight + 10;
-        milestoneDetail = MilestoneDetail(
-            height: height,
-            detailWidget: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                    width: 200,
-                    height: (title.length > 30) ? kLineHeight * 2 : kLineHeight,
-                    child: Text(title, style: kTextStyle)),
-                const SizedBox(height: 5),
-                card
-              ],
-            ));
+        milestoneDetail = Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 200, child: Text(title, style: kTextStyle)),
+            const SizedBox(height: 5),
+            card
+          ],
+        );
         break;
       case 'preconcept':
-        height = 7 * kLineHeight + 20;
-        milestoneDetail = MilestoneDetail(
-            height: height,
-            detailWidget: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        milestoneDetail = Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 200, child: Text(title, style: kTextStyle)),
+            const SizedBox(height: 5),
+            Row(
               children: [
-                SizedBox(
-                    height: (title.length > 25) ? kLineHeight * 2 : kLineHeight,
-                    width: 200,
-                    child: Text(title, style: kTextStyle)),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Container(
-                        alignment: Alignment.centerRight,
-                        height: kLineHeight,
-                        width: 80,
-                        decoration: BoxDecoration(
-                            color: const Color(0xffE7BC04),
-                            border: Border.all(),
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(5))),
-                        child: Center(
-                            child: Text('Preconcept', style: kTextStyleSmall))),
-                    const SizedBox(width: 10),
-                    Text(
-                        (milestones[milestoneNumberLocal].clarity ?? '') +
-                            ' Clarity',
-                        style: kTextStyleSmall)
-                  ],
-                ),
-                const SizedBox(height: 5),
-                card
+                Container(
+                    alignment: Alignment.centerRight,
+                    width: 80,
+                    decoration: BoxDecoration(
+                        color: const Color(0xffE7BC04),
+                        border: Border.all(),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(5))),
+                    child: Center(
+                        child: Text('Preconcept', style: kTextStyleSmall))),
+                const SizedBox(width: 10),
+                Text(
+                    (milestones[milestoneNumberLocal].clarity ?? '') +
+                        ' Clarity',
+                    style: kTextStyleSmall)
               ],
-            ));
+            ),
+            const SizedBox(height: 5),
+            card
+          ],
+        );
 
         break;
       case 'classwork': // Same logic as homework
       case 'homework':
-        height = 4 * kLineHeight;
-        milestoneDetail = MilestoneDetail(
-            height: height,
-            detailWidget: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                    height: (title.length > 25) ? kLineHeight * 2 : kLineHeight,
-                    width: 200,
-                    child: Text(title, style: kTextStyle)),
-                const SizedBox(height: 5),
-                SizedBox(
-                  child: Text(
+        milestoneDetail = Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 200, child: Text(title, style: kTextStyle)),
+            const SizedBox(height: 5),
+            SizedBox(
+              child: Text(
+                  milestones[milestoneNumberLocal]
+                          .progress!
+                          .completed
+                          .toString() +
+                      ' / ' +
                       milestones[milestoneNumberLocal]
-                              .progress!
-                              .completed
-                              .toString() +
-                          ' / ' +
-                          milestones[milestoneNumberLocal]
-                              .progress!
-                              .total
-                              .toString(),
-                      style: kTextStyle),
-                ),
-                const SizedBox(height: 5),
-                LinearPercentIndicator(
-                    width: 150.0,
-                    lineHeight: 8.0,
-                    percent: (milestones[milestoneNumberLocal]
-                                .progress
-                                ?.completed ??
+                          .progress!
+                          .total
+                          .toString(),
+                  style: kTextStyle),
+            ),
+            const SizedBox(height: 5),
+            LinearPercentIndicator(
+                width: 150.0,
+                lineHeight: 8.0,
+                percent:
+                    (milestones[milestoneNumberLocal].progress?.completed ??
                             0) /
                         (milestones[milestoneNumberLocal].progress?.total ?? 1),
-                    backgroundColor: Colors.white,
-                    progressColor: Colors.green,
-                    barRadius: const Radius.circular(5))
-              ],
-            ));
+                backgroundColor: Colors.white,
+                progressColor: Colors.green,
+                barRadius: const Radius.circular(5))
+          ],
+        );
         break;
     }
     return milestoneDetail;
   }
 
-  List<Widget> _drawMilestones(Size size) {
-    double milestoneHeight = 0;
-    List<Widget> widgets = [];
-
+  void _milestoneWidgets(double width) {
+    SizedBox heightBox = SizedBox(height: heightGap);
+    SizedBox widthBox = const SizedBox(width: kControlPoint);
+    SizedBox dataDistanceBox = const SizedBox(width: kCardDistance);
+    columnWidgets = [];
+    rowKeys = [];
+    columnWidgets.insert(0, heightBox);
     for (int i = 0; i < milestones.length; i++) {
-      milestoneHeight += (milestones[i].height ?? 0);
-      MilestoneDetail milestoneDetail =
-          milestoneInformation(i, milestoneHeight);
-      if ((i / 2) != (i ~/ 2)) {
-        widgets.add(Positioned(
-            left: kControlPoint - (kIconSize / 2) + 5,
-            bottom: milestoneHeight - (kIconSize / 2),
-            child: SizedBox(
-                width: kIconSize,
-                height: kIconSize,
-                child: Image(
-                    image:
-                        AssetImage('assets/' + milestones[i].type + '.png')))));
-
-        widgets.add(Positioned(
-            left: (i != 0)
-                ? kControlPoint + kCardDistance
-                : (kControlPoint * 2) + kCardDistance,
-            bottom: milestoneHeight - ((milestoneDetail.height) / 2) + 10,
-            child: milestoneDetail.detailWidget));
+      late Widget row;
+      Widget milestoneData = milestoneInformation(i);
+      GlobalKey rowKey = GlobalKey();
+      if ((i / 2) == (i ~/ 2)) {
+        // Even = Icon on left of UI
+        row = Row(
+            key: rowKey,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              widthBox,
+              Image(image: AssetImage('assets/${milestones[i].type}.png')),
+              dataDistanceBox,
+              milestoneData
+            ]);
       } else {
-        widgets.add(Positioned(
-          right: kControlPoint -
-              (((i == 0) ? kIconSize * 3 : kIconSize) / 2), //  (kIconSize / 2)
-          bottom: milestoneHeight -
-              (((i == 0) ? kIconSize * 3 : kIconSize) / 2) -
-              10,
-          child: SizedBox(
-              width: (i == 0) ? kIconSize * 3 : kIconSize,
-              height: (i == 0) ? kIconSize * 3 : kIconSize,
-              child: Image(
-                  image: AssetImage('assets/' + milestones[i].type + '.png'))),
-        ));
-        widgets.add(Positioned(
-            left: kControlPoint,
-            bottom: milestoneHeight - ((milestoneDetail.height) / 2) + 10,
-            child: milestoneDetail.detailWidget));
+        // Even = Icon on right of UI
+        row = Row(
+            key: rowKey,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              widthBox,
+              Image(image: AssetImage('assets/${milestones[i].type}.png')),
+              dataDistanceBox,
+              milestoneData
+            ]);
       }
+      // Inserting in reverse order so that Column is built from top to bottom
+      // While we add widgets from below to top
+
+      columnWidgets.insert(0, row);
+      columnWidgets.insert(0, heightBox);
+      rowKeys.insert(0, rowKey);
     }
 
-    return widgets;
+    masterColumn = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: columnWidgets);
+
+    return;
   }
 
   @override
   Widget build(BuildContext context) {
-    Size size = Size(
-      MediaQuery.of(context).size.width,
-      totalHeight + topBuffer,
-    );
+    _milestoneWidgets(MediaQuery.of(context).size.width);
+    if (totalHeight > 0 && MediaQuery.of(context).size.width > 0) {
+      double dy = totalHeight.ceil().toDouble();
+      double dx = MediaQuery.of(context).size.width.floor().toDouble();
+      init = false;
+      size = Size(dx, dy);
+    }
+    init = true;
+    if (!init) _startAnimation();
+
     return SafeArea(
       child: Scaffold(
           body: SingleChildScrollView(
         reverse: true,
         child: Center(
+          key: _masterContainerKey,
           child: Container(
-            height: size.height,
-            width: size.width,
+            width: double.infinity,
             decoration:
                 const BoxDecoration(color: Color.fromRGBO(45, 69, 156, 1.0)),
             child: Stack(children: [
-              CustomPaint(
-                  painter: AnimatedPathPainter(_controller), size: size),
-              CustomPaint(painter: DashPathPainter(size)),
+              (init)
+                  ? const SizedBox()
+                  : CustomPaint(
+                      painter: AnimatedPathPainter(_controller), size: size),
+              (init)
+                  ? const SizedBox()
+                  : CustomPaint(painter: DashPathPainter(size)),
+              masterColumn,
               Positioned(
-                  bottom: 0 - 15,
+                  bottom: 0,
                   left: (size.width / 2) - (kIconSize / 2),
                   child: const SizedBox(
                       height: kIconSize,
                       width: kIconSize,
                       child: Image(image: AssetImage('assets/rocket.png')))),
-              Stack(
-                  children: _drawMilestones(Size(
-                MediaQuery.of(context).size.width,
-                totalHeight,
-              ))),
             ]),
           ),
         ),
@@ -277,16 +269,35 @@ class _AnimatedPathState extends State<AnimatedPath>
     );
   }
 
+  void _getWidgetInfo(BuildContext context) {
+    final RenderBox renderBox =
+        _masterContainerKey.currentContext?.findRenderObject() as RenderBox;
+    final Size renderSize =
+        renderBox.size; // or _masterContainerKey.currentContext?.size
+    print('Size: ${renderSize.width}, ${renderSize.height}');
+
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+    print('Offset: ${offset.dx}, ${offset.dy}');
+    print(
+        'Position: ${(offset.dx + renderSize.width) / 2}, ${(offset.dy + renderSize.height) / 2}');
+    totalHeight = renderSize.height;
+
+    setState(() {});
+  }
+
+  // void checkTotalSize(BuildContext context) {
+  //   Size a = context.size ?? const Size(1.0, 1.0);
+  //   print('AAAAA: ' + a.width.toString() + 'BBBB: ' + a.height.toString());
+  // }
+
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-    );
-    _readData();
-    _startAnimation();
+    // if (SchedulerBinding.instance?.schedulerPhase ==
+    //     SchedulerPhase.persistentCallbacks) {
+    SchedulerBinding.instance
+        ?.addPostFrameCallback((_) => _getWidgetInfo(context));
     card = Container(
-        height: 4 * kLineHeight,
         width: 140,
         decoration: BoxDecoration(
             color: const Color(0xffffffff),
@@ -336,6 +347,13 @@ class _AnimatedPathState extends State<AnimatedPath>
                     fontWeight: FontWeight.bold)),
           ]),
         ]));
+
+    // }
+
+    _controller = AnimationController(
+      vsync: this,
+    );
+    _readData();
   }
 
   @override
@@ -344,45 +362,17 @@ class _AnimatedPathState extends State<AnimatedPath>
     super.dispose();
   }
 
-  double _getMilestoneHeight({required String type, required String title}) {
-    double height = 200.0;
-    if (title.length > kMaxTitleLength) {
-      title = title.substring(0, kMaxTitleLength) + ' ...';
-    }
-    switch (type) {
-      case 'starting-point':
-        height = 100;
-        break;
-      case 'topic':
-      case 'preconcept':
-      case 'classwork':
-      case 'homework':
-      default:
-        height = 200;
-        break;
-    }
-    return height;
-  }
-
   void _readData() {
     try {
-      late double height;
       Map<String, dynamic> mapData = jsonDecode(jsonData);
       numberOfMilestones = mapData['currentMilestone'];
       List<dynamic> milestonesData = mapData['milestones'];
       for (int i = 0; i < milestonesData.length; i++) {
-        height = _getMilestoneHeight(
-            type: milestonesData[i]['type'], title: milestonesData[i]['title']);
-
-        if (i == milestonesData.length - 1) height = 200;
-
-        totalHeight += height;
         if (milestonesData[i]['progress'] != null) {
           milestones.add(Milestone(
               type: milestonesData[i]['type'],
               title: milestonesData[i]['title'],
               clarity: milestonesData[i]['clarity'],
-              height: height,
               progress: Progress(
                   completed: milestonesData[i]['progress']['completed'],
                   total: milestonesData[i]['progress']['total'])));
@@ -390,7 +380,6 @@ class _AnimatedPathState extends State<AnimatedPath>
           milestones.add(Milestone(
               type: milestonesData[i]['type'],
               title: milestonesData[i]['title'],
-              height: height,
               clarity: milestonesData[i]['clarity']));
         }
       }
@@ -435,7 +424,7 @@ class AnimatedPathPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final animationPercent = _animation.value;
 
-    print("Painting + $animationPercent - $size");
+    //print("Painting + $animationPercent - $size");
     final path = createAnimatedPath(
         _createAnyPath(size, numberOfMilestones), animationPercent);
 
@@ -500,30 +489,32 @@ Path extractPathUntilLength(
 }
 
 Path _pathToNextMilestone(Size size, Path pathIn, int currentMilestone) {
-  late double heightTop;
-  late double heightMid;
-  heightTop = size.height - ((milestones[currentMilestone].height ?? 0.0));
+  //MGCO
+  // late double heightTop;
+  // late double heightMid;
+  // heightTop = size.height - ((milestones[currentMilestone].height ?? 0.0));
 
-  heightMid = size.height - ((milestones[currentMilestone].height ?? 0.0) / 2);
+  // heightMid = size.height - ((milestones[currentMilestone].height ?? 0.0) / 2);
 
-  if ((currentMilestone / 2) != (currentMilestone ~/ 2)) {
-    // Current Milestone on left
-    pathIn
-      ..quadraticBezierTo(
-          size.width - kControlPoint, heightMid, size.width / 2, heightMid)
-      ..quadraticBezierTo(kControlPoint, heightMid, kControlPoint, heightTop);
-  } else {
-    // Milestone on right
-    pathIn
-      ..quadraticBezierTo(kControlPoint, heightMid, size.width / 2, heightMid)
-      ..quadraticBezierTo(size.width - kControlPoint, heightMid,
-          size.width - kControlPoint, heightTop);
-  }
+  // if ((currentMilestone / 2) != (currentMilestone ~/ 2)) {
+  //   // Current Milestone on left
+  //   pathIn
+  //     ..quadraticBezierTo(
+  //         size.width - kControlPoint, heightMid, size.width / 2, heightMid)
+  //     ..quadraticBezierTo(kControlPoint, heightMid, kControlPoint, heightTop);
+  // } else {
+  //   // Milestone on right
+  //   pathIn
+  //     ..quadraticBezierTo(kControlPoint, heightMid, size.width / 2, heightMid)
+  //     ..quadraticBezierTo(size.width - kControlPoint, heightMid,
+  //         size.width - kControlPoint, heightTop);
+  // }
   return pathIn;
 }
 
 Path _createAnyPath(Size size, int drawTill) {
-  double firstMilestoneHeight = milestones[0].height ?? 0.0;
+  double firstMilestoneHeight = 0.0;
+  // milestones[0].height ?? 0.0;
   Path path = Path()
     ..moveTo(size.width / 2, size.height)
     ..quadraticBezierTo(size.width - kControlPoint, size.height,
@@ -533,7 +524,8 @@ Path _createAnyPath(Size size, int drawTill) {
   for (int i = 1; i < drawTill; i++) {
     size = Size(size.width, prevHeight);
     path = _pathToNextMilestone(size, path, i);
-    prevHeight -= milestones[i].height ?? 0;
+    prevHeight -= 0.0;
+    // milestones[i].height ?? 0;
   }
 
   return path;

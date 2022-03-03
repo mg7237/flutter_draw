@@ -10,14 +10,9 @@ class Milestone {
   String type;
   String title;
   String? clarity;
-  double? height;
   Progress? progress;
   Milestone(
-      {required this.type,
-      required this.title,
-      this.clarity,
-      this.progress,
-      this.height});
+      {required this.type, required this.title, this.clarity, this.progress});
 }
 
 class Progress {
