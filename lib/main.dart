@@ -22,9 +22,9 @@ int numberOfMilestones = 0; // Current Milestone number
 double kLineHeight = 20.0; // Used for card dimensions
 
 const kCardDistance =
-    50.0; // Distance of card from the malestone point on the curve
+    30.0; // Distance of card from the malestone point on the curve
 
-double heightGap = 30.0; // Left, Right milestone height difference
+double heightGap = 80.0; // Left, Right milestone height difference
 
 late Widget card; // Common card for all milestone which need card
 
@@ -88,14 +88,14 @@ class _AnimatedPathState extends State<AnimatedPath>
     switch (milestones[milestoneNumberLocal].type) {
       case 'starting-point':
         milestoneDetail =
-            SizedBox(width: 150, child: Text(title, style: kTextStyle));
+            SizedBox(width: 50, child: Text(title, style: kTextStyle));
         break;
       case 'topic':
         milestoneDetail = Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 200, child: Text(title, style: kTextStyle)),
+            SizedBox(width: 180, child: Text(title, style: kTextStyle)),
             const SizedBox(height: 5),
             card
           ],
@@ -106,7 +106,7 @@ class _AnimatedPathState extends State<AnimatedPath>
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 200, child: Text(title, style: kTextStyle)),
+            SizedBox(width: 150, child: Text(title, style: kTextStyle)),
             const SizedBox(height: 5),
             Row(
               children: [
@@ -183,12 +183,12 @@ class _AnimatedPathState extends State<AnimatedPath>
       late Widget row;
       Widget milestoneData = milestoneInformation(i);
       GlobalKey rowKey = GlobalKey();
-      if ((i / 2) == (i ~/ 2)) {
-        // Even = Icon on left of UI
+      if ((i / 2) != (i ~/ 2)) {
+        // Even milestone = Icon on left of UI
         row = Row(
             key: rowKey,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               widthBox,
               Image(image: AssetImage('assets/${milestones[i].type}.png')),
@@ -196,16 +196,16 @@ class _AnimatedPathState extends State<AnimatedPath>
               milestoneData
             ]);
       } else {
-        // Even = Icon on right of UI
+        // Odd milestone = Icon on right of UI
         row = Row(
             key: rowKey,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              widthBox,
-              Image(image: AssetImage('assets/${milestones[i].type}.png')),
+              milestoneData,
               dataDistanceBox,
-              milestoneData
+              Image(image: AssetImage('assets/${milestones[i].type}.png')),
+              widthBox
             ]);
       }
       // Inserting in reverse order so that Column is built from top to bottom
