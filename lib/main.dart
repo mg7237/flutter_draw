@@ -230,17 +230,17 @@ class _AnimatedPathState extends State<AnimatedPath>
     if (totalHeight > 0 && MediaQuery.of(context).size.width > 0) {
       double dy = totalHeight.ceil().toDouble();
       double dx = MediaQuery.of(context).size.width.floor().toDouble();
-      init = false;
       size = Size(dx, dy);
+      init = false;
     }
-    init = true;
     if (!init) _startAnimation();
 
     return SafeArea(
       child: Scaffold(
           body: SingleChildScrollView(
         reverse: true,
-        child: Center(
+        child: Container(
+          alignment: Alignment.bottomCenter,
           key: _masterContainerKey,
           child: Container(
             width: double.infinity,
@@ -281,14 +281,15 @@ class _AnimatedPathState extends State<AnimatedPath>
     print(
         'Position: ${(offset.dx + renderSize.width) / 2}, ${(offset.dy + renderSize.height) / 2}');
     totalHeight = renderSize.height;
-
+    if (totalHeight > 0 && milestones.isNotEmpty) {
+      for (int i = 0; i < milestones.length; i++) {
+        final RenderBox renderBoxWidget =
+            rowKeys[i].currentContext?.findRenderObject() as RenderBox;
+        milestones[i].height = renderBoxWidget.size.height;
+      }
+    }
     setState(() {});
   }
-
-  // void checkTotalSize(BuildContext context) {
-  //   Size a = context.size ?? const Size(1.0, 1.0);
-  //   print('AAAAA: ' + a.width.toString() + 'BBBB: ' + a.height.toString());
-  // }
 
   @override
   void initState() {
@@ -488,44 +489,45 @@ Path extractPathUntilLength(
   return path;
 }
 
-Path _pathToNextMilestone(Size size, Path pathIn, int currentMilestone) {
-  //MGCO
-  // late double heightTop;
-  // late double heightMid;
-  // heightTop = size.height - ((milestones[currentMilestone].height ?? 0.0));
+Path _pathToNextMilestone(
+    double prevHeight, double width, Path pathIn, int currentMilestone) {
+  double heightTop =
+      prevHeight - heightGap - ((milestones[currentMilestone].height ?? 0.0));
 
-  // heightMid = size.height - ((milestones[currentMilestone].height ?? 0.0) / 2);
+  double heightMid = prevHeight -
+      heightGap -
+      ((milestones[currentMilestone].height ?? 0.0) / 2);
 
-  // if ((currentMilestone / 2) != (currentMilestone ~/ 2)) {
-  //   // Current Milestone on left
-  //   pathIn
-  //     ..quadraticBezierTo(
-  //         size.width - kControlPoint, heightMid, size.width / 2, heightMid)
-  //     ..quadraticBezierTo(kControlPoint, heightMid, kControlPoint, heightTop);
-  // } else {
-  //   // Milestone on right
-  //   pathIn
-  //     ..quadraticBezierTo(kControlPoint, heightMid, size.width / 2, heightMid)
-  //     ..quadraticBezierTo(size.width - kControlPoint, heightMid,
-  //         size.width - kControlPoint, heightTop);
-  // }
+  if ((currentMilestone / 2) != (currentMilestone ~/ 2)) {
+    // Current Milestone on left
+    pathIn
+      ..quadraticBezierTo(
+          width - kControlPoint, heightMid, width / 2, heightMid)
+      ..quadraticBezierTo(kControlPoint, heightMid, kControlPoint, heightTop);
+  } else {
+    // Milestone on right
+    pathIn
+      ..quadraticBezierTo(kControlPoint, heightMid, width / 2, heightMid)
+      ..quadraticBezierTo(
+          width - kControlPoint, heightMid, width - kControlPoint, heightTop);
+  }
   return pathIn;
 }
 
 Path _createAnyPath(Size size, int drawTill) {
-  double firstMilestoneHeight = 0.0;
-  // milestones[0].height ?? 0.0;
+  double firstMilestoneHeight = (milestones[0].height ?? 0.0);
   Path path = Path()
     ..moveTo(size.width / 2, size.height)
-    ..quadraticBezierTo(size.width - kControlPoint, size.height,
-        size.width - kControlPoint, size.height - firstMilestoneHeight);
+    ..quadraticBezierTo(
+        size.width - kControlPoint,
+        size.height,
+        size.width - kControlPoint,
+        size.height - firstMilestoneHeight - heightGap);
 
-  double prevHeight = size.height - firstMilestoneHeight;
+  double prevHeight = size.height - firstMilestoneHeight - heightGap;
   for (int i = 1; i < drawTill; i++) {
-    size = Size(size.width, prevHeight);
-    path = _pathToNextMilestone(size, path, i);
-    prevHeight -= 0.0;
-    // milestones[i].height ?? 0;
+    path = _pathToNextMilestone(prevHeight, size.width, path, i);
+    prevHeight -= (milestones[i].height ?? 0) + heightGap;
   }
 
   return path;

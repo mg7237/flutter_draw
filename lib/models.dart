@@ -11,8 +11,13 @@ class Milestone {
   String title;
   String? clarity;
   Progress? progress;
+  double? height;
   Milestone(
-      {required this.type, required this.title, this.clarity, this.progress});
+      {required this.type,
+      required this.title,
+      this.clarity,
+      this.progress,
+      this.height});
 }
 
 class Progress {
