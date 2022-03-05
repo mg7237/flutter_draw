@@ -10,7 +10,7 @@ import 'package:flutter/scheduler.dart';
 /// Hard coded variables
 
 // Use to define steepness of curve, lesser value >> steeper curve
-const kControlPoint = 50.0;
+const kControlPoint = 45.0;
 
 List<Milestone> milestones = []; // All milestones array check Milestone Model
 
@@ -185,16 +185,35 @@ class _AnimatedPathState extends State<AnimatedPath>
       GlobalKey rowKey = GlobalKey();
       if ((i / 2) != (i ~/ 2)) {
         // Even milestone = Icon on left of UI
-        row = Row(
-            key: rowKey,
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
+        if (i == 0) {
+          row = Column(
             children: [
-              widthBox,
-              Image(image: AssetImage('assets/${milestones[i].type}.png')),
-              dataDistanceBox,
-              milestoneData
-            ]);
+              heightBox,
+              Row(
+                  key: rowKey,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    widthBox,
+                    Image(
+                        image: AssetImage('assets/${milestones[i].type}.png')),
+                    dataDistanceBox,
+                    milestoneData
+                  ]),
+            ],
+          );
+        } else {
+          row = Row(
+              key: rowKey,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                widthBox,
+                Image(image: AssetImage('assets/${milestones[i].type}.png')),
+                dataDistanceBox,
+                milestoneData
+              ]);
+        }
       } else {
         // Odd milestone = Icon on right of UI
         row = Row(
@@ -213,7 +232,8 @@ class _AnimatedPathState extends State<AnimatedPath>
 
       columnWidgets.insert(0, row);
       if (i != milestones.length - 1) columnWidgets.insert(0, heightBox);
-      rowKeys.insert(0, rowKey);
+      //rowKeys.insert(0, rowKey);
+      rowKeys.add(rowKey);
     }
 
     masterColumn = Column(
@@ -491,8 +511,9 @@ Path extractPathUntilLength(
 
 Path _pathToNextMilestone(
     double prevHeight, double width, Path pathIn, int currentMilestone) {
-  double offsetHeight = 100;
-  double offsetwidth = 30;
+  double offsetHeight = 80;
+  double offsetWidth = 30;
+  double adjustIcon = 20.0;
   double heightTop = prevHeight -
       (heightGap +
           ((milestones[currentMilestone].height ?? 0.0) / 2) +
@@ -502,20 +523,29 @@ Path _pathToNextMilestone(
 
   if ((currentMilestone / 2) != (currentMilestone ~/ 2)) {
     // Current Milestone on left
+
+    if (currentMilestone == 1) {
+      offsetHeight = 40;
+    } else {
+      offsetHeight = 80;
+    }
     pathIn
-      ..quadraticBezierTo(width - kControlPoint - offsetwidth,
+      ..quadraticBezierTo(width - kControlPoint - offsetWidth,
           prevHeight - offsetHeight, width / 2, heightMid)
-      ..quadraticBezierTo(kControlPoint + offsetwidth, heightTop + offsetHeight,
-          kControlPoint, heightTop);
+      ..quadraticBezierTo(kControlPoint + offsetWidth, heightTop + offsetHeight,
+          kControlPoint + adjustIcon, heightTop);
     // width - kControlPoint, heightMid, width / 2, heightMid)
     //..quadraticBezierTo(kControlPoint, heightMid, kControlPoint, heightTop);
   } else {
     // Milestone on right
     pathIn
-      ..quadraticBezierTo(kControlPoint + offsetwidth,
+      ..quadraticBezierTo(kControlPoint + offsetWidth,
           prevHeight - offsetHeight, width / 2, heightMid)
-      ..quadraticBezierTo(width - kControlPoint - offsetwidth,
-          heightTop + offsetHeight, width - kControlPoint, heightTop);
+      ..quadraticBezierTo(
+          width - kControlPoint - offsetWidth,
+          heightTop + offsetHeight,
+          width - kControlPoint - adjustIcon,
+          heightTop);
     // ..quadraticBezierTo(kControlPoint, heightMid, width / 2, heightMid)
     // ..quadraticBezierTo(
     //     width - kControlPoint, heightMid, width - kControlPoint, heightTop);
@@ -528,8 +558,8 @@ Path _createAnyPath(Size size, int drawTill) {
   Path path = Path()
     ..moveTo(size.width / 2, size.height)
     ..quadraticBezierTo(
-        size.width - kControlPoint - 10,
-        firstMilestoneHeight + 10,
+        size.width - kControlPoint,
+        firstMilestoneHeight,
         size.width - kControlPoint - ((3 * kIconSize) / 2),
         firstMilestoneHeight);
 
