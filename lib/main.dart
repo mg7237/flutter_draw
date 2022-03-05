@@ -185,54 +185,57 @@ class _AnimatedPathState extends State<AnimatedPath>
       GlobalKey rowKey = GlobalKey();
       if ((i / 2) != (i ~/ 2)) {
         // Even milestone = Icon on left of UI
+
+        row = Row(
+            key: rowKey,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              widthBox,
+              Image(image: AssetImage('assets/${milestones[i].type}.png')),
+              dataDistanceBox,
+              milestoneData
+            ]);
+      } else {
+        // Odd milestone = Icon on right of UI
         if (i == 0) {
           row = Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            key: rowKey,
             children: [
-              heightBox,
+              Container(
+                height: 80,
+              ),
               Row(
-                  key: rowKey,
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    widthBox,
+                    milestoneData,
+                    dataDistanceBox,
                     Image(
                         image: AssetImage('assets/${milestones[i].type}.png')),
-                    dataDistanceBox,
-                    milestoneData
+                    widthBox
                   ]),
             ],
           );
         } else {
           row = Row(
               key: rowKey,
-              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                widthBox,
-                Image(image: AssetImage('assets/${milestones[i].type}.png')),
+                milestoneData,
                 dataDistanceBox,
-                milestoneData
+                Image(image: AssetImage('assets/${milestones[i].type}.png')),
+                widthBox
               ]);
         }
-      } else {
-        // Odd milestone = Icon on right of UI
-        row = Row(
-            key: rowKey,
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              milestoneData,
-              dataDistanceBox,
-              Image(image: AssetImage('assets/${milestones[i].type}.png')),
-              widthBox
-            ]);
       }
       // Inserting in reverse order so that Column is built from top to bottom
       // While we add widgets from below to top
 
       columnWidgets.insert(0, row);
       if (i != milestones.length - 1) columnWidgets.insert(0, heightBox);
-      //rowKeys.insert(0, rowKey);
       rowKeys.add(rowKey);
     }
 
@@ -512,8 +515,11 @@ Path extractPathUntilLength(
 Path _pathToNextMilestone(
     double prevHeight, double width, Path pathIn, int currentMilestone) {
   double offsetHeight = 80;
+  // (currentMilestone == 1)
+  //     ? 40 // adjusted to 40 for 1st milestone for smoother roadmap
+  //     : 80;
   double offsetWidth = 30;
-  double adjustIcon = 20.0;
+  double adjustIcon = kIconSize / 2;
   double heightTop = prevHeight -
       (heightGap +
           ((milestones[currentMilestone].height ?? 0.0) / 2) +
@@ -524,18 +530,11 @@ Path _pathToNextMilestone(
   if ((currentMilestone / 2) != (currentMilestone ~/ 2)) {
     // Current Milestone on left
 
-    if (currentMilestone == 1) {
-      offsetHeight = 40;
-    } else {
-      offsetHeight = 80;
-    }
     pathIn
       ..quadraticBezierTo(width - kControlPoint - offsetWidth,
           prevHeight - offsetHeight, width / 2, heightMid)
       ..quadraticBezierTo(kControlPoint + offsetWidth, heightTop + offsetHeight,
           kControlPoint + adjustIcon, heightTop);
-    // width - kControlPoint, heightMid, width / 2, heightMid)
-    //..quadraticBezierTo(kControlPoint, heightMid, kControlPoint, heightTop);
   } else {
     // Milestone on right
     pathIn
@@ -546,23 +545,22 @@ Path _pathToNextMilestone(
           heightTop + offsetHeight,
           width - kControlPoint - adjustIcon,
           heightTop);
-    // ..quadraticBezierTo(kControlPoint, heightMid, width / 2, heightMid)
-    // ..quadraticBezierTo(
-    //     width - kControlPoint, heightMid, width - kControlPoint, heightTop);
   }
   return pathIn;
 }
 
 Path _createAnyPath(Size size, int drawTill) {
-  double firstMilestoneHeight = size.height - ((milestones[0].height ?? 0) / 2);
+  double firstMilestoneHeight = size.height - ((kIconSize * 3) / 2);
   Path path = Path()
-    ..moveTo(size.width / 2, size.height)
+    ..moveTo(size.width / 2, size.height + heightGap)
     ..quadraticBezierTo(
-        size.width - kControlPoint,
-        firstMilestoneHeight,
-        size.width - kControlPoint - ((3 * kIconSize) / 2),
+        size.width - kControlPoint + 30,
+        firstMilestoneHeight + heightGap,
+        size.width - kControlPoint - ((kIconSize) / 2),
         firstMilestoneHeight);
 
+//  ..quadraticBezierTo(width - kControlPoint - offsetWidth,
+//           prevHeight - offsetHeight, width / 2, heightMid)
   double prevHeight = firstMilestoneHeight;
   for (int i = 1; i < drawTill; i++) {
     path = _pathToNextMilestone(prevHeight, size.width, path, i);
