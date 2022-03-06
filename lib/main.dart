@@ -17,7 +17,7 @@ List<Milestone> milestones = []; // All milestones array check Milestone Model
 // Milestone image size (IconSize) is within a square container
 const kIconSize = 50.0;
 
-int numberOfMilestones = 0; // Current Milestone number
+int numberOfMilestones = 0; // Total number of milestones
 
 double kLineHeight = 20.0; // Used for card dimensions
 
@@ -27,8 +27,6 @@ const kCardDistance =
 double heightGap = 80.0; // Left, Right milestone height difference
 
 late Widget card; // Common card for all milestone which need card
-
-int kMaxTitleLength = 30; // Title Length
 
 TextStyle kTextStyle = const TextStyle(
     fontFamily: 'Nunito',
@@ -58,7 +56,8 @@ class AnimatedPath extends StatefulWidget {
 class _AnimatedPathState extends State<AnimatedPath>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  bool init = true;
+  bool init =
+      true; // To avoid drawing paths before milestone widgets are layed out
   Size size = const Size(0, 0);
   double totalHeight =
       0; // Canvas height = Sum of all milestone heights in above array
@@ -81,8 +80,8 @@ class _AnimatedPathState extends State<AnimatedPath>
 
     String title = milestones[milestoneNumberLocal].title;
     if ((milestones[milestoneNumberLocal].title) != '' &&
-        milestones[milestoneNumberLocal].title.length > 55) {
-      title = title.substring(0, 53) + ' ...';
+        milestones[milestoneNumberLocal].title.length > 40) {
+      title = title.substring(0, 40) + ' ...';
     }
 
     switch (milestones[milestoneNumberLocal].type) {
@@ -178,7 +177,6 @@ class _AnimatedPathState extends State<AnimatedPath>
     SizedBox dataDistanceBox = const SizedBox(width: kCardDistance);
     columnWidgets = [];
     rowKeys = [];
-
     for (int i = 0; i < milestones.length; i++) {
       late Widget row;
       Widget milestoneData = milestoneInformation(i);
@@ -200,12 +198,8 @@ class _AnimatedPathState extends State<AnimatedPath>
         // Odd milestone = Icon on right of UI
         if (i == 0) {
           row = Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             key: rowKey,
             children: [
-              Container(
-                height: 80,
-              ),
               Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -214,8 +208,10 @@ class _AnimatedPathState extends State<AnimatedPath>
                     dataDistanceBox,
                     Image(
                         image: AssetImage('assets/${milestones[i].type}.png')),
-                    widthBox
                   ]),
+              SizedBox(
+                height: heightGap / 2,
+              )
             ],
           );
         } else {
@@ -512,12 +508,32 @@ Path extractPathUntilLength(
   return path;
 }
 
+Path _createAnyPath(Size size, int drawTill) {
+  double prevHeight = size.height + heightGap;
+  double firstMilestoneHeight =
+      prevHeight - heightGap - ((milestones[0].height ?? 0) / 2);
+
+  Path path = Path()
+    ..moveTo(size.width / 2, prevHeight)
+    ..quadraticBezierTo(
+        size.width - kControlPoint - 30,
+        firstMilestoneHeight + heightGap,
+        size.width - kControlPoint - ((kIconSize) / 2),
+        firstMilestoneHeight);
+  prevHeight = firstMilestoneHeight;
+  for (int i = 1; i < drawTill; i++) {
+    path = _pathToNextMilestone(prevHeight, size.width, path, i);
+    prevHeight -= (heightGap +
+        ((milestones[i].height ?? 0) / 2) +
+        ((milestones[i - 1].height ?? 0) / 2));
+  }
+
+  return path;
+}
+
 Path _pathToNextMilestone(
     double prevHeight, double width, Path pathIn, int currentMilestone) {
   double offsetHeight = 80;
-  // (currentMilestone == 1)
-  //     ? 40 // adjusted to 40 for 1st milestone for smoother roadmap
-  //     : 80;
   double offsetWidth = 30;
   double adjustIcon = kIconSize / 2;
   double heightTop = prevHeight -
@@ -528,7 +544,7 @@ Path _pathToNextMilestone(
   double heightMid = prevHeight - ((prevHeight - heightTop) / 2);
 
   if ((currentMilestone / 2) != (currentMilestone ~/ 2)) {
-    // Current Milestone on left
+    // Next Milestone on left
 
     pathIn
       ..quadraticBezierTo(width - kControlPoint - offsetWidth,
@@ -536,7 +552,7 @@ Path _pathToNextMilestone(
       ..quadraticBezierTo(kControlPoint + offsetWidth, heightTop + offsetHeight,
           kControlPoint + adjustIcon, heightTop);
   } else {
-    // Milestone on right
+    // Next Milestone on right
     pathIn
       ..quadraticBezierTo(kControlPoint + offsetWidth,
           prevHeight - offsetHeight, width / 2, heightMid)
@@ -547,29 +563,6 @@ Path _pathToNextMilestone(
           heightTop);
   }
   return pathIn;
-}
-
-Path _createAnyPath(Size size, int drawTill) {
-  double firstMilestoneHeight = size.height - ((kIconSize * 3) / 2);
-  Path path = Path()
-    ..moveTo(size.width / 2, size.height + heightGap)
-    ..quadraticBezierTo(
-        size.width - kControlPoint + 30,
-        firstMilestoneHeight + heightGap,
-        size.width - kControlPoint - ((kIconSize) / 2),
-        firstMilestoneHeight);
-
-//  ..quadraticBezierTo(width - kControlPoint - offsetWidth,
-//           prevHeight - offsetHeight, width / 2, heightMid)
-  double prevHeight = firstMilestoneHeight;
-  for (int i = 1; i < drawTill; i++) {
-    path = _pathToNextMilestone(prevHeight, size.width, path, i);
-    prevHeight -= (heightGap +
-        ((milestones[i].height ?? 0) / 2) +
-        ((milestones[i - 1].height ?? 0) / 2));
-  }
-
-  return path;
 }
 
 void main() {
